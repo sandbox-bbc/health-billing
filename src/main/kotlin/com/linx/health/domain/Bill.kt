@@ -1,6 +1,5 @@
 package com.linx.health.domain
 
-import io.micronaut.serde.annotation.Serdeable
 import java.math.BigDecimal
 import java.util.UUID
 
@@ -18,6 +17,9 @@ import java.util.UUID
  * 7. insuranceAmount = totalAmount × 90%
  * 8. coPayAmount = totalAmount × 10%
  * 
+ * Note: No @Serdeable - domain models are not serialized directly.
+ * Use DTOs for API request/response.
+ * 
  * @property id Unique identifier (UUID)
  * @property appointmentId Reference to the billed appointment
  * @property baseFee Fee from specialty/experience table
@@ -28,7 +30,6 @@ import java.util.UUID
  * @property insuranceAmount Amount covered by insurance (90%)
  * @property coPayAmount Amount to be paid by patient (10%)
  */
-@Serdeable
 data class Bill(
     val id: UUID = UUID.randomUUID(),
     val appointmentId: UUID,

@@ -1,6 +1,5 @@
 package com.linx.health.domain
 
-import io.micronaut.serde.annotation.Serdeable
 import java.time.LocalDate
 import java.time.Period
 import java.util.UUID
@@ -9,13 +8,15 @@ import java.util.UUID
  * Patient entity with embedded insurance information.
  * Age is calculated from DOB, not stored.
  * 
+ * Note: No @Serdeable - domain models are not serialized directly.
+ * Use DTOs for API request/response.
+ * 
  * @property id Unique identifier (UUID)
  * @property firstName Patient's first name
  * @property lastName Patient's last name
  * @property dob Date of birth
  * @property insurance Embedded insurance information
  */
-@Serdeable
 data class Patient(
     val id: UUID = UUID.randomUUID(),
     val firstName: String,

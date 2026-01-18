@@ -1,6 +1,5 @@
 package com.linx.health.domain
 
-import io.micronaut.serde.annotation.Serdeable
 import java.time.LocalDate
 import java.time.Period
 import java.util.UUID
@@ -9,6 +8,9 @@ import java.util.UUID
  * Doctor entity (immutable after creation).
  * Experience years calculated from practice start date.
  * 
+ * Note: No @Serdeable - domain models are not serialized directly.
+ * Use DTOs for API request/response.
+ * 
  * @property id Unique identifier (UUID)
  * @property firstName Doctor's first name
  * @property lastName Doctor's last name
@@ -16,7 +18,6 @@ import java.util.UUID
  * @property specialty Medical specialty (ORTHO, CARDIO)
  * @property practiceStartDate When the doctor started practicing
  */
-@Serdeable
 data class Doctor(
     val id: UUID = UUID.randomUUID(),
     val firstName: String,
