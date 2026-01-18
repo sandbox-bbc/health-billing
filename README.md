@@ -1,45 +1,224 @@
-## Micronaut 4.10.7 Documentation
+# Healthcare Billing System
 
-- [User Guide](https://docs.micronaut.io/4.10.7/guide/index.html)
-- [API Reference](https://docs.micronaut.io/4.10.7/api/index.html)
-- [Configuration Reference](https://docs.micronaut.io/4.10.7/guide/configurationreference.html)
-- [Micronaut Guides](https://guides.micronaut.io/index.html)
----
+A backend system for managing healthcare billing, built with **Kotlin** and **Micronaut**.
 
-- [Micronaut Gradle Plugin documentation](https://micronaut-projects.github.io/micronaut-gradle-plugin/latest/)
-- [GraalVM Gradle Plugin documentation](https://graalvm.github.io/native-build-tools/latest/gradle-plugin.html)
-- [Shadow Gradle Plugin](https://gradleup.com/shadow/)
-## Feature serialization-jackson documentation
+## Tech Stack
 
-- [Micronaut Serialization Jackson Core documentation](https://micronaut-projects.github.io/micronaut-serialization/latest/guide/)
+| Component | Technology | Version |
+|-----------|------------|---------|
+| Runtime | JDK | 21 |
+| Language | Kotlin | 1.9.25 |
+| Framework | Micronaut | 4.10.7 |
+| Build | Gradle (Kotlin DSL) | 8.x |
+| Testing | Kotest + MockK | - |
 
+## Quick Start
 
-## Feature kotest documentation
+### Prerequisites
+- JDK 21+
+- Gradle 8.x (or use included wrapper)
 
-- [Micronaut Test Kotest5 documentation](https://micronaut-projects.github.io/micronaut-test/latest/guide/#kotest5)
+### Run the Application
 
-- [https://kotest.io/](https://kotest.io/)
+```bash
+./gradlew run
+```
 
+The server starts at `http://localhost:8080`
 
-## Feature control-panel documentation
+### Run Tests
 
-- [Micronaut Control Panel documentation](https://micronaut-projects.github.io/micronaut-control-panel/latest/guide/index.html)
+```bash
+./gradlew test
+```
 
+### Health Check
 
-## Feature management documentation
+```bash
+curl http://localhost:8080/health
+```
 
-- [Micronaut Management documentation](https://docs.micronaut.io/latest/guide/index.html#management)
+## API Endpoints
 
+### Patients
 
-## Feature ksp documentation
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/patients` | Create patient with insurance |
+| GET | `/patients/{id}` | Get patient by ID |
+| GET | `/patients` | List all patients |
+| PUT | `/patients/{id}` | Update patient |
+| DELETE | `/patients/{id}` | Delete patient |
 
-- [Micronaut Kotlin Symbol Processing (KSP) documentation](https://docs.micronaut.io/latest/guide/#kotlin)
+### Doctors
 
-- [https://kotlinlang.org/docs/ksp-overview.html](https://kotlinlang.org/docs/ksp-overview.html)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/doctors` | Create doctor |
+| GET | `/doctors/{id}` | Get doctor by ID |
+| GET | `/doctors` | List all doctors |
+| DELETE | `/doctors/{id}` | Delete doctor |
 
+> **Note:** Doctors are immutable - no update endpoint.
 
-## Feature micronaut-aot documentation
+### Appointments
 
-- [Micronaut AOT documentation](https://micronaut-projects.github.io/micronaut-aot/latest/guide/)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/appointments` | Schedule appointment |
+| GET | `/appointments/{id}` | Get appointment by ID |
+| GET | `/appointments` | List all appointments |
+| PUT | `/appointments/{id}/status` | Update status (COMPLETED/CANCELLED) |
+| DELETE | `/appointments/{id}` | Delete appointment |
 
+### Billing
 
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/bills/generate/{appointmentId}` | Generate bill for completed appointment |
+| GET | `/bills/{id}` | Get bill by ID |
+| GET | `/bills` | List all bills |
+| GET | `/bills?appointmentId={id}` | Get bill by appointment ID |
+
+## Billing Calculation
+
+### Fee Table
+
+| Specialty | 0-19 yrs exp | 20-30 yrs exp | 31+ yrs exp |
+|-----------|--------------|---------------|-------------|
+| ORTHO | $800 | $1,000 | $1,500 |
+| CARDIO | $1,000 | $1,500 | $2,000 |
+
+### Calculation Flow
+
+```
+Base Fee (from table)
+    ↓
+- Loyalty Discount (min(priorVisits, 10)%)
+    ↓
++ GST (12%)
+    ↓
+= Total Amount
+    ↓
+Split: Insurance (90%) / Co-pay (10%)
+```
+
+### Example
+
+```
+Doctor: CARDIO, 26 years experience → $1,500 base fee
+Patient: 5 prior completed visits → 5% discount
+
+Base Fee:        $1,500.00
+Discount (5%):   -  $75.00
+Discounted:      $1,425.00
+GST (12%):       + $171.00
+Total:           $1,596.00
+Insurance (90%): $1,436.40
+Co-pay (10%):    $  159.60
+```
+
+## Sample API Calls
+
+### Create Patient
+
+```bash
+curl -X POST http://localhost:8080/patients \
+  -H "Content-Type: application/json" \
+  -d '{
+    "firstName": "John",
+    "lastName": "Doe",
+    "dob": "01/15/1990",
+    "insurance": {
+      "binNo": "123456",
+      "pcnNo": "PCN001",
+      "memberId": "MEM12345"
+    }
+  }'
+```
+
+### Create Doctor
+
+```bash
+curl -X POST http://localhost:8080/doctors \
+  -H "Content-Type: application/json" \
+  -d '{
+    "firstName": "Jane",
+    "lastName": "Smith",
+    "npiNo": "NPI123456",
+    "specialty": "CARDIO",
+    "practiceStartDate": "01/01/2000"
+  }'
+```
+
+### Schedule Appointment
+
+```bash
+curl -X POST http://localhost:8080/appointments \
+  -H "Content-Type: application/json" \
+  -d '{
+    "patientId": "<patient-uuid>",
+    "doctorId": "<doctor-uuid>",
+    "appointmentDate": "01/20/2026"
+  }'
+```
+
+### Complete Appointment
+
+```bash
+curl -X PUT http://localhost:8080/appointments/<appointment-uuid>/status \
+  -H "Content-Type: application/json" \
+  -d '{"status": "COMPLETED"}'
+```
+
+### Generate Bill
+
+```bash
+curl -X POST http://localhost:8080/bills/generate/<appointment-uuid> \
+  -H "Content-Type: application/json"
+```
+
+## Project Structure
+
+```
+src/main/kotlin/com/linx/health/
+├── Application.kt           # Entry point
+├── controller/              # REST endpoints
+├── service/                 # Business logic
+│   └── billing/             # Billing calculation (Strategy Pattern)
+├── repository/              # In-memory data access
+├── domain/                  # Entity models
+├── dto/                     # Request/Response objects
+├── common/                  # Shared constants
+└── exception/               # Error handling
+```
+
+## Documentation
+
+- [Architecture](docs/ARCHITECTURE.md) - System design and diagrams
+- [Design Decisions](docs/DESIGN_DECISIONS.md) - ADRs with rationale
+- [Assumptions](docs/ASSUMPTIONS.md) - Business and technical assumptions
+
+## Design Highlights
+
+- **Strategy Pattern** for specialty-based fee calculation (extensible)
+- **Extension Functions** for DTO ↔ Domain mapping
+- **Unified Exception Handler** for consistent error responses
+- **In-memory Storage** with `ConcurrentHashMap` (thread-safe)
+
+## Error Codes
+
+| Code | HTTP Status | Description |
+|------|-------------|-------------|
+| PATIENT_NOT_FOUND | 404 | Patient does not exist |
+| DOCTOR_NOT_FOUND | 404 | Doctor does not exist |
+| APPOINTMENT_NOT_FOUND | 404 | Appointment does not exist |
+| APPOINTMENT_NOT_COMPLETED | 400 | Cannot bill non-completed appointment |
+| BILL_ALREADY_EXISTS | 409 | Bill already generated for appointment |
+| DUPLICATE_NPI | 409 | Doctor with NPI already exists |
+| PATIENT_HAS_APPOINTMENTS | 409 | Cannot delete patient with appointments |
+| DOCTOR_HAS_APPOINTMENTS | 409 | Cannot delete doctor with appointments |
+
+## License
+
+Private - Assignment submission
