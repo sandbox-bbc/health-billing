@@ -40,6 +40,24 @@ The server starts at `http://localhost:8080`
 curl http://localhost:8080/health
 ```
 
+### Demo UI
+
+A web-based demo interface is included to showcase all features:
+
+```bash
+./gradlew run
+# Open http://localhost:8080 in your browser
+```
+
+The UI is served as a static resource from the same server - no separate frontend setup needed!
+
+**Demo Features:**
+- 🚀 Interactive step-by-step billing workflow
+- 👤 Patient management (CRUD)
+- 🩺 Doctor management
+- 📅 Appointment scheduling & status updates
+- 💰 Bill generation with detailed breakdown
+
 ## API Endpoints
 
 ### Patients
