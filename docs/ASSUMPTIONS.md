@@ -19,12 +19,21 @@ This document lists assumptions made during the implementation of the Healthcare
 ### Patient
 - Insurance information is **always provided** with patient creation
 - Per problem statement: "patient already has valid insurance"
+- **Age is calculated from DOB**, not stored separately
+- API returns calculated age in responses for convenience
+- Future enhancement: could accept age at creation and convert to DOB (not implementing now)
 
 ### Doctor
 - Doctor information is **immutable** after creation
 - Problem statement uses "capture" which implies one-time entry
 - If correction is needed, delete and recreate the record
 - Fields that don't change: NPI number, specialty, practice start date
+
+### Experience Brackets
+- Experience calculated from `practiceStartDate` to current date
+- **0-19 years**: `experienceYears < 20`
+- **20-30 years**: `experienceYears >= 20 && experienceYears <= 30`
+- **31+ years**: `experienceYears >= 31`
 
 ### Appointments
 - Only **COMPLETED** appointments count toward loyalty discount
@@ -45,6 +54,16 @@ This document lists assumptions made during the implementation of the Healthcare
 ### Specialties
 - Only ORTHO and CARDIO specialties are implemented
 - Per problem statement: "assume more specialties as needed" - keeping simple for this scope
+
+### Deletion Rules
+- **Cannot delete Doctor** with existing appointments (returns 409 Conflict)
+- **Cannot delete Patient** with existing appointments (returns 409 Conflict)
+- Assignment focuses on billing; complex cascade/orphan handling is out of scope
+
+### Validation
+- Basic required field checks only
+- No strict format validation for NPI, BIN, PCN (treated as strings)
+- DOB must not be in the future
 
 ## Out of Scope
 
