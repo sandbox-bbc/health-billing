@@ -408,4 +408,279 @@ Discount calculation rule:
 
 ---
 
+## ADR-007: DTOs Grouped by Domain Entity
+
+**Date:** January 2026  
+**Status:** Accepted
+
+### Context
+
+Need to decide how to organize DTO files (request/response classes) in the codebase.
+
+### Options Considered
+
+#### Option A: Single File Per Domain (Chosen)
+```
+dto/
+├── PatientDto.kt      # CreatePatientRequest, UpdatePatientRequest, PatientResponse
+├── DoctorDto.kt       # CreateDoctorRequest, DoctorResponse
+├── AppointmentDto.kt  # ...
+└── BillDto.kt         # ...
+```
+
+#### Option B: Separate Files Per DTO
+```
+dto/
+├── CreatePatientRequest.kt
+├── UpdatePatientRequest.kt
+├── PatientResponse.kt
+├── CreateDoctorRequest.kt
+└── ...
+```
+
+#### Option C: Grouped by Type
+```
+dto/
+├── request/
+│   ├── CreatePatientRequest.kt
+│   └── CreateDoctorRequest.kt
+└── response/
+    ├── PatientResponse.kt
+    └── DoctorResponse.kt
+```
+
+### Decision
+
+**Chosen: Option A - Single File Per Domain**
+
+### Rationale
+
+1. **Cohesion:** All Patient-related DTOs in one place.
+
+2. **Easy navigation:** Open `PatientDto.kt` to see all Patient DTOs.
+
+3. **Extension functions together:** Mapping functions stay with their DTOs.
+
+4. **Appropriate for project size:** Small project doesn't need deep folder structure.
+
+5. **Refactoring friendly:** Changes to Patient DTOs are localized.
+
+### File Structure
+
+```kotlin
+// PatientDto.kt
+data class CreatePatientRequest(...)
+data class UpdatePatientRequest(...)
+data class PatientResponse(...)
+data class InsuranceInfoDto(...)
+
+// Extension functions
+fun Patient.toResponse() = ...
+fun CreatePatientRequest.toDomain() = ...
+```
+
+---
+
+## ADR-008: Extension Functions for DTO Mapping
+
+**Date:** January 2026  
+**Status:** Accepted
+
+### Context
+
+Need to decide how to convert between domain models and DTOs. Two main approaches in Kotlin:
+
+1. **Companion object methods** - Static factory-style methods inside the DTO class
+2. **Extension functions** - Methods added to source class that return target
+
+### Options Considered
+
+#### Option A: Companion Object
+```kotlin
+data class PatientResponse(...) {
+    companion object {
+        fun fromDomain(patient: Patient) = PatientResponse(...)
+    }
+}
+// Usage: PatientResponse.fromDomain(patient)
+```
+
+#### Option B: Extension Function
+```kotlin
+fun Patient.toResponse() = PatientResponse(...)
+// Usage: patient.toResponse()
+```
+
+### Decision
+
+**Chosen: Option B - Extension Functions**
+
+### Rationale
+
+1. **More idiomatic Kotlin:** Extension functions are a core Kotlin feature.
+
+2. **Cleaner chaining with null safety:**
+   ```kotlin
+   // Extension - clean
+   patientRepository.findById(id)?.toResponse()
+   
+   // Companion - awkward
+   patientRepository.findById(id)?.let { PatientResponse.fromDomain(it) }
+   ```
+
+3. **Natural reading order:** "Take patient, convert to response" reads left-to-right.
+
+4. **IDE discoverability:** Type `patient.` and IDE shows `toResponse()`.
+
+5. **Consistency:** All mappings follow same pattern (`source.toTarget()`).
+
+### Convention Established
+
+```kotlin
+// Domain → DTO
+fun Patient.toResponse() = PatientResponse(...)
+fun InsuranceInfo.toDto() = InsuranceInfoDto(...)
+
+// DTO → Domain
+fun CreatePatientRequest.toDomain() = Patient(...)
+fun InsuranceInfoDto.toDomain() = InsuranceInfo(...)
+```
+
+### Location
+
+Extension functions placed at bottom of DTO file, after data class definitions.
+
+---
+
+## ADR-009: Unified Exception Handler
+
+**Date:** January 2026  
+**Status:** Accepted
+
+### Context
+
+Need to handle domain exceptions and map them to HTTP status codes. Micronaut's `ExceptionHandler<E, R>` interface is typed to specific exception types.
+
+### Options Considered
+
+#### Option A: One Handler Per Exception
+```kotlin
+class NotFoundExceptionHandler : ExceptionHandler<NotFoundException, ...>
+class ConflictExceptionHandler : ExceptionHandler<ConflictException, ...>
+class BadRequestExceptionHandler : ExceptionHandler<BadRequestException, ...>
+```
+
+#### Option B: Single Handler for Base Exception
+```kotlin
+class DomainExceptionHandler : ExceptionHandler<DomainException, ...> {
+    override fun handle(...) {
+        val status = when (exception) {
+            is NotFoundException -> HttpStatus.NOT_FOUND
+            is ConflictException -> HttpStatus.CONFLICT
+            is BadRequestException -> HttpStatus.BAD_REQUEST
+            else -> HttpStatus.INTERNAL_SERVER_ERROR
+        }
+    }
+}
+```
+
+### Decision
+
+**Chosen: Option B - Single Unified Handler**
+
+### Rationale
+
+1. **Less boilerplate:** One class instead of many.
+
+2. **Centralized logic:** All exception-to-status mapping in one place.
+
+3. **Easier to maintain:** Adding new exception type = one line in `when`.
+
+4. **Kotlin `when` is exhaustive:** Compiler can warn if cases are missing.
+
+5. **Consistent response format:** All exceptions produce same `ErrorResponse` structure.
+
+### Exception Hierarchy
+
+```kotlin
+abstract class DomainException(message: String, val errorCode: String)
+├── NotFoundException    → 404
+├── ConflictException    → 409
+└── BadRequestException  → 400
+```
+
+---
+
+## ADR-010: Centralized Error Codes
+
+**Date:** January 2026  
+**Status:** Accepted
+
+### Context
+
+Error codes are used in exceptions to identify specific error scenarios. Need to decide how to manage these codes across the codebase.
+
+### Options Considered
+
+#### Option A: Inline Strings
+```kotlin
+throw NotFoundException("...", "PATIENT_NOT_FOUND")
+```
+
+#### Option B: Constants in Exception Classes
+```kotlin
+class NotFoundException {
+    companion object {
+        const val PATIENT = "PATIENT_NOT_FOUND"
+    }
+}
+```
+
+#### Option C: Central ErrorCodes Object
+```kotlin
+object ErrorCodes {
+    const val PATIENT_NOT_FOUND = "PATIENT_NOT_FOUND"
+    const val DOCTOR_NOT_FOUND = "DOCTOR_NOT_FOUND"
+}
+```
+
+#### Option D: Enum
+```kotlin
+enum class ErrorCode { PATIENT_NOT_FOUND, DOCTOR_NOT_FOUND }
+```
+
+### Decision
+
+**Chosen: Option C - Central ErrorCodes Object**
+
+### Rationale
+
+1. **Single source of truth:** All error codes in one file.
+
+2. **IDE autocomplete:** Type `ErrorCodes.` to see all available codes.
+
+3. **Prevents typos:** Compiler catches misspelled constant names.
+
+4. **Easy discovery:** New developers can see all error codes at once.
+
+5. **Simple refactoring:** Change code in one place.
+
+6. **No signature changes:** Unlike enum, doesn't require changing exception constructors.
+
+### Structure
+
+```kotlin
+object ErrorCodes {
+    // Patient
+    const val PATIENT_NOT_FOUND = "PATIENT_NOT_FOUND"
+    const val PATIENT_HAS_APPOINTMENTS = "PATIENT_HAS_APPOINTMENTS"
+    
+    // Doctor (added when implementing Doctor APIs)
+    // Appointment (added when implementing Appointment APIs)
+    // Billing (added when implementing Billing APIs)
+}
+```
+
+---
+
 *More decisions will be documented as the project progresses.*
