@@ -1,5 +1,7 @@
 # Healthcare Billing System
 
+![CI](https://github.com/sandbox-bbc/health-billing/actions/workflows/ci.yml/badge.svg)
+
 A backend system for managing healthcare billing, built with **Kotlin** and **Micronaut**.
 
 ## Tech Stack
@@ -277,7 +279,7 @@ Push/PR ──► Checkout ──► JDK 21 ──► Cache ──► Build ─�
 
 **What CI checks:**
 1. Code compiles successfully
-2. All tests pass (36 tests)
+2. All tests pass (38 tests)
 3. Test reports uploaded as artifacts
 
 **View CI results:** GitHub repo → Actions tab
