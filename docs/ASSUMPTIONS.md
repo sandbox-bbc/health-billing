@@ -38,8 +38,9 @@ This document lists assumptions made during the implementation of the Healthcare
 
 ### Discount Calculation
 - Discount = `min(priorCompletedAppointments, 10)%`
-- "Prior" means appointments completed **before** the current one
-- Current appointment being billed is NOT counted in prior count
+- "Prior" means COMPLETED appointments **excluding** the current one being billed
+- Current appointment does NOT contribute to its own discount
+- Example: 1st visit = 0%, 2nd visit = 1%, 11th visit = 10% (capped)
 
 ### Specialties
 - Only ORTHO and CARDIO specialties are implemented

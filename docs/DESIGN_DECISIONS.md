@@ -308,4 +308,104 @@ Need to decide how to represent money in the billing system.
 
 ---
 
+## ADR-006: Appointment Status and Discount Timing
+
+**Date:** January 2026  
+**Status:** Accepted
+
+### Context
+
+The system needs to track appointment lifecycle and calculate loyalty discounts based on "prior visits." A critical question arose: when an appointment is marked COMPLETED and then billed, should it count toward its own discount?
+
+**The Problem:**
+```
+Patient has 3 prior COMPLETED appointments.
+4th appointment happens → marked COMPLETED → bill generated.
+
+Question: Is discount 3% (prior only) or 4% (including current)?
+```
+
+### Options Considered
+
+#### Option A: Simple Statuses (3 states)
+```
+SCHEDULED → COMPLETED
+         ↘ CANCELLED
+```
+- Exclude current appointment in discount calculation via code
+- Bill existence proves billing happened
+
+#### Option B: Add BILLED Status (4 states)
+```
+SCHEDULED → COMPLETED → BILLED
+         ↘ CANCELLED
+```
+- Only count BILLED appointments for discount
+- Status automatically excludes current
+
+### Decision
+
+**Chosen: Option A - Simple Statuses (3 states)**
+
+Appointment statuses:
+| Status | Meaning |
+|--------|---------|
+| `SCHEDULED` | Booked, consultation not yet done |
+| `COMPLETED` | Consultation finished, eligible for billing |
+| `CANCELLED` | Appointment was cancelled |
+
+Discount calculation rule:
+- Count all COMPLETED appointments for the patient
+- **Exclude the current appointment being billed**
+- Current appointment does NOT contribute to its own discount
+
+### Rationale
+
+1. **Problem Statement Alignment:** Uses "COMPLETE" as the final consultation state.
+
+2. **Semantic Clarity:** "Prior visits" logically means visits BEFORE the current one. Visit #4 shouldn't get credit for Visit #4.
+
+3. **Simplicity:** 3 statuses are easier to manage than 4.
+
+4. **Separation of Concerns:** Bill is a separate entity - its existence proves billing happened. We don't need a status to track this.
+
+5. **Explicit Logic:** The exclusion is clear in code:
+   ```kotlin
+   fun calculatePriorVisits(currentAppointmentId: UUID, patientId: UUID): Int {
+       return appointmentRepository
+           .findByPatientId(patientId)
+           .count { it.status == COMPLETED && it.id != currentAppointmentId }
+   }
+   ```
+
+### Workflow
+
+```
+1. Appointment created           → SCHEDULED
+2. Patient visits, consultation
+3. Staff marks appointment       → COMPLETED
+4. Bill generation requested
+5. System calculates discount (excluding current appointment)
+6. Bill created and returned
+7. Appointment stays             → COMPLETED (bill existence = billed)
+```
+
+### Consequences
+
+- Discount logic must explicitly exclude current appointment ID
+- No way to query "billed appointments" by status alone (must join with Bill entity)
+- Simple state machine, fewer transitions to manage
+
+### Example Scenarios
+
+| Visit # | Prior COMPLETED (excl. current) | Discount |
+|---------|--------------------------------|----------|
+| 1st | 0 | 0% |
+| 2nd | 1 | 1% |
+| 3rd | 2 | 2% |
+| 11th | 10 | 10% (capped) |
+| 15th | 14 | 10% (capped) |
+
+---
+
 *More decisions will be documented as the project progresses.*
