@@ -1,3 +1,17 @@
+# Continuous Integration Pipeline
+# 
+# Triggers:
+#   - Push to main or feat/* branches
+#   - Pull requests targeting main
+#
+# What it does:
+#   1. Checks out code
+#   2. Sets up JDK 21
+#   3. Caches Gradle dependencies (faster builds)
+#   4. Compiles the project
+#   5. Runs all tests
+#   6. Uploads test reports (even on failure)
+
 name: CI
 
 on:
@@ -11,15 +25,19 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+    # 1. Get the code
     - name: Checkout code
       uses: actions/checkout@v4
 
+    # 2. Install Java 21 (Temurin distribution)
     - name: Set up JDK 21
       uses: actions/setup-java@v4
       with:
         java-version: '21'
         distribution: 'temurin'
 
+    # 3. Cache dependencies to speed up subsequent builds
+    #    Key changes when gradle files change → fresh download
     - name: Cache Gradle packages
       uses: actions/cache@v4
       with:
@@ -30,15 +48,19 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-gradle-
 
+    # 4. Linux requires explicit execute permission
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
+    # 5. Compile code (skip tests for clearer output)
     - name: Build
       run: ./gradlew build -x test
 
+    # 6. Run all tests - if this fails, workflow fails
     - name: Run tests
       run: ./gradlew test
 
+    # 7. Save test reports for debugging (runs even if tests fail)
     - name: Upload test results
       uses: actions/upload-artifact@v4
       if: always()
