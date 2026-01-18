@@ -10,4 +10,9 @@ object ErrorCodes {
     // Patient
     const val PATIENT_NOT_FOUND = "PATIENT_NOT_FOUND"
     const val PATIENT_HAS_APPOINTMENTS = "PATIENT_HAS_APPOINTMENTS"
+    
+    // Doctor
+    const val DOCTOR_NOT_FOUND = "DOCTOR_NOT_FOUND"
+    const val DOCTOR_HAS_APPOINTMENTS = "DOCTOR_HAS_APPOINTMENTS"
+    const val DUPLICATE_NPI = "DUPLICATE_NPI"
 }
