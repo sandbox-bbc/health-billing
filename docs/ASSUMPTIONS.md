@@ -65,6 +65,15 @@ This document lists assumptions made during the implementation of the Healthcare
 - No strict format validation for NPI, BIN, PCN (treated as strings)
 - DOB must not be in the future
 
+## Development Approach
+
+### Testing Strategy (Hybrid)
+- **Domain models**: No tests (simple data classes)
+- **Repositories**: No tests (simple ConcurrentHashMap operations)
+- **Services**: Unit tests for business logic, especially billing calculation
+- **Controllers**: Integration tests to verify end-to-end flow
+- **Focus**: Test where complexity lives (billing logic) rather than trivial CRUD
+
 ## Out of Scope
 
 The following are explicitly NOT implemented:
