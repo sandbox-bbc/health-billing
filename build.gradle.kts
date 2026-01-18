@@ -28,6 +28,7 @@ dependencies {
     runtimeOnly("com.fasterxml.jackson.module:jackson-module-kotlin")
     runtimeOnly("org.yaml:snakeyaml")
     testImplementation("io.micronaut:micronaut-http-client")
+    testImplementation("io.mockk:mockk:1.13.13")
     developmentOnly("io.micronaut.controlpanel:micronaut-control-panel-management")
     developmentOnly("io.micronaut.controlpanel:micronaut-control-panel-ui")
 }
