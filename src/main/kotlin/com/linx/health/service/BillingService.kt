@@ -11,7 +11,7 @@ import com.linx.health.exception.NotFoundException
 import com.linx.health.repository.AppointmentRepository
 import com.linx.health.repository.BillRepository
 import com.linx.health.repository.DoctorRepository
-import com.linx.health.repository.PatientRepository
+import com.linx.health.service.billing.BillingCalculator
 import jakarta.inject.Singleton
 import java.util.UUID
 
@@ -22,14 +22,15 @@ import java.util.UUID
  * - Only COMPLETED appointments can be billed
  * - Each appointment can only be billed once
  * - Discount based on prior completed appointments (excluding current)
+ * 
+ * Uses BillingCalculator (Strategy Pattern) for fee calculation.
  */
 @Singleton
 class BillingService(
     private val billRepository: BillRepository,
     private val appointmentRepository: AppointmentRepository,
-    private val patientRepository: PatientRepository,
     private val doctorRepository: DoctorRepository,
-    private val feeCalculator: FeeCalculator
+    private val billingCalculator: BillingCalculator
 ) {
     
     /**
@@ -74,25 +75,25 @@ class BillingService(
                 ErrorCodes.DOCTOR_NOT_FOUND
             )
         
-        // 4. Calculate base fee
-        val baseFee = feeCalculator.getBaseFee(doctor.specialty, doctor.experienceYears)
+        // 4. Calculate base fee (uses Strategy Pattern)
+        val baseFee = billingCalculator.getBaseFee(doctor.specialty, doctor.experienceYears)
         
         // 5. Calculate discount (prior completed appointments, excluding current)
         val priorCompleted = appointmentRepository.countCompletedByPatientIdExcluding(
             appointment.patientId, 
             appointmentId
         )
-        val discountPercent = feeCalculator.calculateDiscountPercent(priorCompleted)
-        val discountAmount = feeCalculator.calculateDiscountAmount(baseFee, discountPercent)
+        val discountPercent = billingCalculator.calculateDiscountPercent(priorCompleted)
+        val discountAmount = billingCalculator.calculateDiscountAmount(baseFee, discountPercent)
         
         // 6. Calculate amounts
         val discountedAmount = baseFee.subtract(discountAmount)
-        val gstAmount = feeCalculator.calculateGst(discountedAmount)
+        val gstAmount = billingCalculator.calculateGst(discountedAmount)
         val totalAmount = discountedAmount.add(gstAmount)
         
         // 7. Split insurance and co-pay
-        val insuranceAmount = feeCalculator.calculateInsuranceAmount(totalAmount)
-        val coPayAmount = feeCalculator.calculateCoPayAmount(totalAmount)
+        val insuranceAmount = billingCalculator.calculateInsuranceAmount(totalAmount)
+        val coPayAmount = billingCalculator.calculateCoPayAmount(totalAmount)
         
         // Create and save bill
         val bill = Bill(
