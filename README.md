@@ -95,7 +95,7 @@ The UI is served as a static resource from the same server - no separate fronten
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/bills/generate/{appointmentId}` | Generate bill for completed appointment |
+| POST | `/bills?appointmentId={id}` | Generate bill for completed appointment |
 | GET | `/bills/{id}` | Get bill by ID |
 | GET | `/bills` | List all bills |
 | GET | `/bills?appointmentId={id}` | Get bill by appointment ID |
@@ -194,8 +194,7 @@ curl -X PUT http://localhost:8080/appointments/<appointment-uuid>/status \
 ### Generate Bill
 
 ```bash
-curl -X POST http://localhost:8080/bills/generate/<appointment-uuid> \
-  -H "Content-Type: application/json"
+curl -X POST "http://localhost:8080/bills?appointmentId=<appointment-uuid>"
 ```
 
 ## Project Structure

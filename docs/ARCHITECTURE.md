@@ -165,7 +165,7 @@ stateDiagram-v2
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Generated: POST /appointments/{id}/bill
+    [*] --> Generated: POST /bills?appointmentId={id}
     Generated --> [*]: Immutable
     
     note right of Generated
@@ -216,7 +216,7 @@ flowchart TD
 | 3 | Schedule Appointment | `POST /appointments` → SCHEDULED |
 | 4 | Consultation happens | (outside system) |
 | 5 | Mark Complete | `PUT /appointments/{id}/status` → COMPLETED |
-| 6 | Generate Bill | `POST /appointments/{id}/bill` |
+| 6 | Generate Bill | `POST /bills?appointmentId={id}` |
 | 7 | System calculates | base fee, discount, GST, insurance split |
 | 8 | Return Bill | Bill with all amounts |
 
@@ -234,7 +234,7 @@ flowchart TD
 | POST | `/appointments` | Schedule appointment |
 | GET | `/appointments/{id}` | Get appointment details |
 | PUT | `/appointments/{id}/status` | Update status |
-| POST | `/appointments/{id}/bill` | Generate bill |
+| POST | `/bills?appointmentId={id}` | Generate bill |
 | GET | `/bills/{id}` | Get bill details |
 
 ## Key Design Decisions

@@ -298,7 +298,7 @@
         }
 
         async function genBill(id) {
-            try { await api(`/bills/generate/${id}`, { method: 'POST' }); toast('Bill generated'); loadAll(); }
+            try { await api(`/bills?appointmentId=${id}`, { method: 'POST' }); toast('Bill generated'); loadAll(); }
             catch (e) { toast(e.message); }
         }
 
@@ -368,7 +368,7 @@
 
         async function generateBill() {
             try {
-                const bill = await api(`/bills/generate/${state.appointmentId}`, { method: 'POST' });
+                const bill = await api(`/bills?appointmentId=${state.appointmentId}`, { method: 'POST' });
                 document.getElementById('bill-result').classList.remove('hidden');
                 document.getElementById('bill-details').innerHTML = `
                     <div>Base Fee: <strong>$${parseFloat(bill.baseFee).toFixed(2)}</strong></div>
