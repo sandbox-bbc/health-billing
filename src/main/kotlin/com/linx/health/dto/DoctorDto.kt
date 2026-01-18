@@ -1,6 +1,7 @@
 package com.linx.health.dto
 
 import com.fasterxml.jackson.annotation.JsonFormat
+import com.linx.health.common.Constants
 import com.linx.health.domain.Doctor
 import com.linx.health.domain.Specialty
 import io.micronaut.serde.annotation.Serdeable
@@ -19,7 +20,7 @@ data class CreateDoctorRequest(
     val lastName: String,
     val npiNo: String,
     val specialty: Specialty,
-    @JsonFormat(pattern = "MM/dd/yyyy")
+    @JsonFormat(pattern = Constants.DATE_FORMAT)
     val practiceStartDate: LocalDate
 )
 
@@ -36,7 +37,7 @@ data class DoctorResponse(
     val lastName: String,
     val npiNo: String,
     val specialty: Specialty,
-    @JsonFormat(pattern = "MM/dd/yyyy")
+    @JsonFormat(pattern = Constants.DATE_FORMAT)
     val practiceStartDate: LocalDate,
     val experienceYears: Int
 )
