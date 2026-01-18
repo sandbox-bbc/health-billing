@@ -1,0 +1,311 @@
+# Design Decisions (Architecture Decision Records)
+
+This document records significant design decisions with context and rationale.
+
+---
+
+## ADR-001: Insurance Information Storage Strategy
+
+**Date:** January 2026  
+**Status:** Accepted
+
+### Context
+
+The system needs to store patient insurance information (BIN No., PCN No., Member ID). We needed to decide how to model this data in relation to the Patient entity.
+
+### Options Considered
+
+#### Option A: Flat Structure
+All insurance fields directly on Patient class.
+
+```kotlin
+data class Patient(
+    val id: UUID,
+    val firstName: String,
+    val lastName: String,
+    val dob: LocalDate,
+    val insuranceBinNo: String,
+    val insurancePcnNo: String,
+    val insuranceMemberId: String
+)
+```
+
+**Pros:**
+- Simplest implementation
+- Single class to maintain
+- Flat JSON structure
+
+**Cons:**
+- Mixes domain concerns (patient identity vs insurance)
+- Fields scattered across class
+- Harder to validate insurance as a unit
+- Less reusable (can't pass insurance info separately)
+- Gets messy if insurance fields grow
+
+#### Option B: Nested Object (Embedded)
+Insurance as a separate data class, embedded within Patient.
+
+```kotlin
+data class InsuranceInfo(
+    val binNo: String,
+    val pcnNo: String,
+    val memberId: String
+)
+
+data class Patient(
+    val id: UUID,
+    val firstName: String,
+    val lastName: String,
+    val dob: LocalDate,
+    val insurance: InsuranceInfo
+)
+```
+
+**Pros:**
+- Clear domain grouping
+- Easy to validate insurance as unit
+- Reusable (can pass InsuranceInfo to functions)
+- Clean JSON structure with logical nesting
+- Easy to extend insurance fields later
+- Shows understanding of domain modeling
+
+**Cons:**
+- Slightly more code (one extra class)
+- Nested JSON structure (minor)
+
+#### Option C: Separate Entity
+Insurance as independent entity with its own ID and lifecycle.
+
+```kotlin
+data class InsuranceInfo(
+    val id: UUID,
+    val patientId: UUID,
+    val binNo: String,
+    val pcnNo: String,
+    val memberId: String
+)
+```
+
+**Pros:**
+- Complete separation of concerns
+- Supports multiple insurance per patient
+- Full CRUD independence
+- Audit trail per insurance record
+
+**Cons:**
+- Overkill for this requirement (1:1 relationship)
+- More complex API (separate endpoints)
+- Extra join logic needed
+- Problem statement treats it as part of patient
+
+### Decision
+
+**Chosen: Option B - Nested Object (Embedded)**
+
+### Rationale
+
+1. **Domain Clarity:** Insurance information is conceptually a cohesive unit. The problem statement even groups these three fields together as "Patient Insurance Info has 3 components".
+
+2. **Validation:** Can validate all insurance fields together:
+   ```kotlin
+   fun validateInsurance(insurance: InsuranceInfo) {
+       require(insurance.binNo.length == 6) { "BIN must be 6 digits" }
+       require(insurance.memberId.isNotBlank()) { "Member ID required" }
+   }
+   ```
+
+3. **Reusability:** Can pass `InsuranceInfo` to functions without passing entire Patient:
+   ```kotlin
+   fun verifyWithInsuranceProvider(insurance: InsuranceInfo): Boolean
+   fun formatInsuranceCard(insurance: InsuranceInfo): String
+   ```
+
+4. **Future-Proof:** If we need to add fields (group number, plan type), they logically belong in InsuranceInfo, not cluttering Patient.
+
+5. **Balance:** Option B provides structure without the complexity of Option C. Since insurance doesn't have independent lifecycle (created/deleted with patient), a separate entity is unnecessary.
+
+6. **API Clarity:** JSON structure makes the domain model obvious:
+   ```json
+   {
+     "id": "...",
+     "firstName": "John",
+     "lastName": "Doe",
+     "dob": "01/15/1985",
+     "insurance": {
+       "binNo": "123456",
+       "pcnNo": "PCN001",
+       "memberId": "MEM123"
+     }
+   }
+   ```
+
+### Consequences
+
+- Patient and InsuranceInfo are created/updated/deleted together
+- No separate insurance endpoint needed
+- Insurance is always present (per problem statement: "patient has valid insurance")
+
+---
+
+## ADR-002: Doctor Immutability
+
+**Date:** January 2026  
+**Status:** Accepted
+
+### Context
+
+Need to decide whether Doctor records should be updatable after creation.
+
+### Options Considered
+
+1. **Full CRUD** - Allow updates to all fields
+2. **Partial Updates** - Allow some fields to be updated
+3. **Immutable** - No updates allowed (delete + recreate if needed)
+
+### Decision
+
+**Chosen: Immutable (Option 3)**
+
+### Rationale
+
+1. **Problem Statement Language:** Uses "capture" for doctor info, implying one-time entry, not ongoing maintenance.
+
+2. **Business Logic:** Key fields shouldn't change:
+   - NPI Number: Regulatory identifier, never changes
+   - Specialty: Doctors don't typically change specialties
+   - Practice Start Date: Historical fact
+
+3. **Simplicity:** One less endpoint to implement and test.
+
+4. **Data Integrity:** Prevents accidental modifications to billing-critical data.
+
+### Consequences
+
+- If correction needed, delete and recreate the doctor record
+- Appointments referencing a doctor would need handling if doctor is deleted
+- For this assignment scope, we assume doctors aren't deleted while having appointments
+
+---
+
+## ADR-003: Per-Appointment Billing (Not Bulk)
+
+**Date:** January 2026  
+**Status:** Accepted
+
+### Context
+
+Need to decide whether billing should be calculated for one appointment at a time or in bulk.
+
+### Options Considered
+
+1. **Bulk Billing** - Calculate bills for all unbilled appointments at once
+2. **Per-Appointment** - Calculate bill for single appointment
+
+### Decision
+
+**Chosen: Per-Appointment (Option 2)**
+
+### Rationale
+
+1. **Problem Statement:** Uses singular language: "bill for a particular consultation"
+
+2. **Simplicity:** Easier to understand, implement, and test.
+
+3. **Error Handling:** If one calculation fails, others aren't affected.
+
+4. **Real-World Pattern:** Billing typically happens right after consultation, not in batch.
+
+5. **Idempotency:** Can easily make endpoint idempotent (return existing bill if already generated).
+
+### Consequences
+
+- Endpoint: `POST /appointments/{id}/bill` (not `POST /billing/generate-all`)
+- If bulk needed later, can add as separate endpoint
+- Each billing request triggers one calculation
+
+---
+
+## ADR-004: UUID for Entity Identifiers
+
+**Date:** January 2026  
+**Status:** Accepted
+
+### Context
+
+Need to decide on ID generation strategy for entities.
+
+### Options Considered
+
+1. **Auto-increment Integer** - Sequential numbers (1, 2, 3...)
+2. **UUID** - Universally unique identifiers
+3. **Custom ID** - Business-specific format (e.g., PAT-001)
+
+### Decision
+
+**Chosen: UUID (Option 2)**
+
+### Rationale
+
+1. **No Collisions:** Safe for distributed systems and concurrent creation.
+
+2. **Security:** Non-sequential IDs don't reveal business information (e.g., "you're patient #3").
+
+3. **Standard:** Widely understood and supported by all tooling.
+
+4. **Kotlin Support:** Built-in `java.util.UUID` class.
+
+5. **Future-Proof:** Works if system ever scales to multiple instances.
+
+### Consequences
+
+- IDs are longer in URLs and JSON
+- No natural ordering by ID
+- Acceptable trade-offs for the benefits
+
+---
+
+## ADR-005: BigDecimal for Monetary Values
+
+**Date:** January 2026  
+**Status:** Accepted
+
+### Context
+
+Need to decide how to represent money in the billing system.
+
+### Options Considered
+
+1. **Double/Float** - Native floating point
+2. **BigDecimal** - Arbitrary precision decimal
+3. **Long (cents)** - Store as integer cents
+
+### Decision
+
+**Chosen: BigDecimal (Option 2)**
+
+### Rationale
+
+1. **Precision:** Floating point has rounding errors:
+   ```kotlin
+   // Double problem
+   val result = 0.1 + 0.2  // = 0.30000000000000004
+   
+   // BigDecimal correct
+   val result = BigDecimal("0.1") + BigDecimal("0.2")  // = 0.3
+   ```
+
+2. **Industry Standard:** Financial systems universally use BigDecimal or similar.
+
+3. **Clear Intent:** Code explicitly shows we care about precision.
+
+4. **Calculation Support:** Built-in rounding modes, scale control.
+
+### Consequences
+
+- Slightly more verbose than primitives
+- Must use `BigDecimal("value")` not `BigDecimal(0.1)` to avoid double conversion
+- JSON serialization handled automatically by Jackson
+
+---
+
+*More decisions will be documented as the project progresses.*
