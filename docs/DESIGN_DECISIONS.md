@@ -219,7 +219,7 @@ Need to decide whether billing should be calculated for one appointment at a tim
 
 ### Consequences
 
-- Endpoint: `POST /appointments/{id}/bill` (not `POST /billing/generate-all`)
+- Endpoint: `POST /bills?appointmentId={id}` (not `POST /billing/generate-all`)
 - If bulk needed later, can add as separate endpoint
 - Each billing request triggers one calculation
 
