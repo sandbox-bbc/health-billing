@@ -219,6 +219,69 @@ src/main/kotlin/com/linx/health/
 | PATIENT_HAS_APPOINTMENTS | 409 | Cannot delete patient with appointments |
 | DOCTOR_HAS_APPOINTMENTS | 409 | Cannot delete doctor with appointments |
 
+## Development Workflow
+
+### Branching Strategy
+
+```
+main (protected)
+  │
+  └── feat/implementation ──► PR ──► main
+```
+
+| Branch | Purpose |
+|--------|---------|
+| `main` | Production-ready code, protected |
+| `feat/*` | Feature development branches |
+
+### Git Workflow
+
+```bash
+# 1. Create feature branch
+git checkout -b feat/my-feature
+
+# 2. Make changes and commit
+git add .
+git commit -m "feat: add new feature"
+
+# 3. Push to remote
+git push origin feat/my-feature
+
+# 4. Create Pull Request on GitHub
+# 5. CI runs automatically
+# 6. Merge when CI passes
+```
+
+### Commit Convention
+
+We use [Conventional Commits](https://www.conventionalcommits.org/):
+
+| Prefix | Purpose | Example |
+|--------|---------|---------|
+| `feat:` | New feature | `feat: add billing endpoint` |
+| `fix:` | Bug fix | `fix: correct discount calculation` |
+| `docs:` | Documentation | `docs: update API examples` |
+| `refactor:` | Code restructure | `refactor: extract fee strategy` |
+| `test:` | Tests | `test: add billing tests` |
+| `chore:` | Maintenance | `chore: update dependencies` |
+
+### CI Pipeline
+
+GitHub Actions runs automatically on:
+- Push to `main` or `feat/*` branches
+- Pull requests targeting `main`
+
+```
+Push/PR ──► Checkout ──► JDK 21 ──► Cache ──► Build ──► Test ──► ✅/❌
+```
+
+**What CI checks:**
+1. Code compiles successfully
+2. All tests pass (36 tests)
+3. Test reports uploaded as artifacts
+
+**View CI results:** GitHub repo → Actions tab
+
 ## License
 
 Private - Assignment submission
