@@ -683,4 +683,52 @@ object ErrorCodes {
 
 ---
 
+## ADR-011: No Serialization Annotations on Domain Models
+
+**Date:** January 2026  
+**Status:** Accepted
+
+### Context
+
+Micronaut Serialization requires `@Serdeable` annotation for classes to be serialized/deserialized. Need to decide whether domain models should have this annotation.
+
+### Decision
+
+**Domain models do NOT have `@Serdeable`. Only DTOs have serialization annotations.**
+
+### Rationale
+
+1. **Separation of concerns:** Domain models represent business logic; serialization is an API concern.
+
+2. **Single responsibility:** DTOs handle API format, domain models handle business rules.
+
+3. **Flexibility:** Domain can evolve independently of API format.
+
+4. **Clean domain layer:** No framework dependencies in domain classes.
+
+5. **Explicit mapping:** Extension functions make the mapping visible and testable.
+
+### Structure
+
+```
+domain/           # No @Serdeable
+├── Patient.kt    
+├── Doctor.kt
+├── Appointment.kt
+├── Bill.kt
+└── InsuranceInfo.kt
+
+dto/              # @Serdeable on all DTOs
+├── PatientDto.kt
+├── DoctorDto.kt
+├── AppointmentDto.kt
+└── BillDto.kt
+```
+
+### Exception: Enums
+
+Enums (`Specialty`, `AppointmentStatus`) don't need `@Serdeable` as Micronaut handles them natively.
+
+---
+
 *More decisions will be documented as the project progresses.*

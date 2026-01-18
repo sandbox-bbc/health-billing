@@ -1,6 +1,5 @@
 package com.linx.health.domain
 
-import io.micronaut.serde.annotation.Serdeable
 import java.time.LocalDate
 import java.util.UUID
 
@@ -10,13 +9,15 @@ import java.util.UUID
  * Lifecycle: SCHEDULED → COMPLETED/CANCELLED
  * Only COMPLETED appointments can be billed.
  * 
+ * Note: No @Serdeable - domain models are not serialized directly.
+ * Use DTOs for API request/response.
+ * 
  * @property id Unique identifier (UUID)
  * @property patientId Reference to Patient
  * @property doctorId Reference to Doctor
  * @property appointmentDate Date of the appointment
  * @property status Current status (SCHEDULED, COMPLETED, CANCELLED)
  */
-@Serdeable
 data class Appointment(
     val id: UUID = UUID.randomUUID(),
     val patientId: UUID,
