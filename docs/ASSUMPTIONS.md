@@ -84,3 +84,4 @@ The following are explicitly NOT implemented:
 4. **Database** - In-memory only, per assignment requirement
 5. **Pagination** - List endpoints return all records
 6. **Search/Filtering** - Basic lookups only
+7. **Payment Processing** - This system calculates bills only; actual payment collection, payment gateway integration, and payment status tracking are not implemented. The bill shows what is owed (co-pay) and what insurance covers, but doesn't process transactions.
