@@ -68,11 +68,26 @@ This document lists assumptions made during the implementation of the Healthcare
 ## Development Approach
 
 ### Testing Strategy (Hybrid)
-- **Domain models**: No tests (simple data classes)
-- **Repositories**: No tests (simple ConcurrentHashMap operations)
-- **Services**: Unit tests for business logic, especially billing calculation
-- **Controllers**: Integration tests to verify end-to-end flow
-- **Focus**: Test where complexity lives (billing logic) rather than trivial CRUD
+
+**Philosophy:** Test *behavior and business rules*, not trivial code.
+
+| Layer | Tested? | Rationale |
+|-------|---------|-----------|
+| Domain models | ❌ No | Data classes with no logic - nothing to verify |
+| Repositories | ❌ No | Thin wrappers over `ConcurrentHashMap` - testing Java's map |
+| Fee Strategies | ✅ Yes | Business rules (fee brackets by experience) |
+| BillingCalculator | ✅ Yes | Core logic (discount, GST, insurance split) |
+| BillingService | ✅ Yes | Validation + orchestration of billing flow |
+| AppointmentService | ✅ Partial | Status transitions (state machine logic) |
+| PatientService | ❌ No | Simple CRUD + delete constraint (similar to Doctor) |
+| DoctorService | ❌ No | Simple CRUD + NPI check (covered by integration) |
+| Controllers | ❌ No | HTTP layer tested manually; business logic covered by service tests |
+
+**Why not 100% coverage?**
+- Assignment focuses on **billing calculation** - that's where bugs matter most
+- CRUD operations are straightforward - low bug risk
+- Integration tests cover happy paths end-to-end
+- Time is better spent on **meaningful tests** than hitting coverage metrics
 
 ## Out of Scope
 
