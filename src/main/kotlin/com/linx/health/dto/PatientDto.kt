@@ -1,6 +1,7 @@
 package com.linx.health.dto
 
 import com.fasterxml.jackson.annotation.JsonFormat
+import com.linx.health.common.Constants
 import com.linx.health.domain.InsuranceInfo
 import com.linx.health.domain.Patient
 import io.micronaut.serde.annotation.Serdeable
@@ -14,7 +15,7 @@ import java.util.UUID
 data class CreatePatientRequest(
     val firstName: String,
     val lastName: String,
-    @JsonFormat(pattern = "MM/dd/yyyy")
+    @JsonFormat(pattern = Constants.DATE_FORMAT)
     val dob: LocalDate,
     val insurance: InsuranceInfoDto
 )
@@ -26,7 +27,7 @@ data class CreatePatientRequest(
 data class UpdatePatientRequest(
     val firstName: String,
     val lastName: String,
-    @JsonFormat(pattern = "MM/dd/yyyy")
+    @JsonFormat(pattern = Constants.DATE_FORMAT)
     val dob: LocalDate,
     val insurance: InsuranceInfoDto
 )
@@ -50,7 +51,7 @@ data class PatientResponse(
     val id: UUID,
     val firstName: String,
     val lastName: String,
-    @JsonFormat(pattern = "MM/dd/yyyy")
+    @JsonFormat(pattern = Constants.DATE_FORMAT)
     val dob: LocalDate,
     val age: Int,
     val insurance: InsuranceInfoDto
