@@ -106,6 +106,9 @@ erDiagram
 | Money Type | BigDecimal | Precision for financial calculations |
 | Date Format | MM/DD/YYYY (API), LocalDate (internal) | Per assignment requirement |
 | Doctor Updates | Not allowed (immutable) | Problem statement says "capture" |
+| Insurance Info | Embedded in Patient | Domain clarity, validation grouping |
+
+> 📖 **Detailed reasoning:** See [DESIGN_DECISIONS.md](./DESIGN_DECISIONS.md) for full ADRs with context and alternatives considered.
 
 ## Billing Calculation Flow
 
