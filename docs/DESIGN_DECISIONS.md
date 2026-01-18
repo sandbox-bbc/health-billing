@@ -731,4 +731,90 @@ Enums (`Specialty`, `AppointmentStatus`) don't need `@Serdeable` as Micronaut ha
 
 ---
 
+## ADR-012: Strategy Pattern for Fee Calculation
+
+**Date:** January 2026  
+**Status:** Accepted
+
+### Context
+
+Fee calculation varies by specialty. Need a design that:
+1. Follows Open/Closed Principle
+2. Makes adding new specialties easy
+3. Keeps each specialty's logic isolated and testable
+
+### Options Considered
+
+#### Option A: Map-Based (Original)
+```kotlin
+private val FEE_TABLE = mapOf(
+    Specialty.ORTHO to mapOf(...),
+    Specialty.CARDIO to mapOf(...)
+)
+```
+❌ Adding specialty requires modifying existing code
+
+#### Option B: Configuration-Based
+```yaml
+billing:
+  fees:
+    ORTHO: { junior: 800, mid: 1000, senior: 1500 }
+```
+✅ No code change for fee updates  
+❌ More complex setup, validation in config
+
+#### Option C: Strategy Pattern (Chosen)
+```kotlin
+interface FeeStrategy { fun getBaseFee(experienceYears: Int): BigDecimal }
+
+@Named("ORTHO") class OrthoFeeStrategy : FeeStrategy
+@Named("CARDIO") class CardioFeeStrategy : FeeStrategy
+```
+✅ Open/Closed Principle  
+✅ Each specialty testable independently  
+✅ Clear extension point
+
+### Decision
+
+**Chosen: Option C - Strategy Pattern**
+
+### Implementation
+
+```
+service/billing/
+├── FeeStrategy.kt         # Interface + BaseFeeStrategy
+├── OrthoFeeStrategy.kt    # @Named("ORTHO")
+├── CardioFeeStrategy.kt   # @Named("CARDIO")
+├── BillingCalculator.kt   # Uses strategies
+└── BillingConstants.kt    # Rates, brackets
+```
+
+### Adding New Specialty
+
+```kotlin
+// 1. Create new strategy
+@Singleton
+@Named("NEURO")
+class NeuroFeeStrategy : BaseFeeStrategy() {
+    override fun getJuniorFee() = BigDecimal("900")
+    override fun getMidFee() = BigDecimal("1200")
+    override fun getSeniorFee() = BigDecimal("1800")
+}
+
+// 2. Add to Specialty enum
+enum class Specialty { ORTHO, CARDIO, NEURO }
+
+// 3. Inject and add to calculator
+// No modification to existing strategies!
+```
+
+### Benefits
+
+1. **Maintainability:** Each specialty in its own file
+2. **Testability:** Test each strategy in isolation
+3. **Extensibility:** Add new specialty = add new class
+4. **Readability:** Fee table visible in each strategy's KDoc
+
+---
+
 *More decisions will be documented as the project progresses.*

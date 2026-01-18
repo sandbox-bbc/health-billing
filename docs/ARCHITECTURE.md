@@ -21,9 +21,16 @@ com.linx.health/
 ├── Application.kt          # Entry point
 ├── controller/             # REST endpoints
 ├── service/                # Business logic
+│   └── billing/            # Billing calculation (Strategy Pattern)
+│       ├── BillingConstants.kt
+│       ├── BillingCalculator.kt
+│       ├── FeeStrategy.kt
+│       ├── OrthoFeeStrategy.kt
+│       └── CardioFeeStrategy.kt
 ├── repository/             # Data access (in-memory)
 ├── domain/                 # Entity models
 ├── dto/                    # Request/Response objects
+├── common/                 # Shared constants
 └── exception/              # Custom exceptions
 ```
 
@@ -269,3 +276,103 @@ flowchart TD
 | CARDIO | $1,000 | $1,500 | $2,000 |
 
 > Experience = years since `practiceStartDate`
+
+## Extension Points
+
+The codebase is designed for easy extension following the **Open/Closed Principle**.
+
+### 1. Adding a New Specialty
+
+**Location:** `service/billing/`
+
+**Steps:**
+1. Add enum value to `domain/Specialty.kt`
+2. Create new strategy class (e.g., `NeuroFeeStrategy.kt`)
+3. Add case to `BillingCalculator.getStrategy()`
+
+**Example:**
+```kotlin
+// Step 1: Add enum
+enum class Specialty { ORTHO, CARDIO, NEURO }
+
+// Step 2: Create strategy
+@Singleton
+@Named("NEURO")
+class NeuroFeeStrategy : BaseFeeStrategy() {
+    override fun getJuniorFee() = BigDecimal("900")
+    override fun getMidFee() = BigDecimal("1200")
+    override fun getSeniorFee() = BigDecimal("1800")
+}
+
+// Step 3: Add to calculator
+fun getStrategy(specialty: Specialty) = when (specialty) {
+    Specialty.ORTHO -> orthoStrategy
+    Specialty.CARDIO -> cardioStrategy
+    Specialty.NEURO -> neuroStrategy  // Add this
+}
+```
+
+### 2. Changing Fee Amounts
+
+**Location:** Individual strategy classes (e.g., `OrthoFeeStrategy.kt`)
+
+**Steps:** Modify the constants in the strategy's companion object.
+
+### 3. Changing Rates (GST, Insurance, Discount Cap)
+
+**Location:** `service/billing/BillingConstants.kt`
+
+```kotlin
+object BillingConstants {
+    val GST_RATE = BigDecimal("0.12")       // Change here
+    val INSURANCE_RATE = BigDecimal("0.90") // Change here
+    const val MAX_DISCOUNT_PERCENT = 10     // Change here
+}
+```
+
+### 4. Changing Experience Brackets
+
+**Location:** `service/billing/BillingConstants.kt`
+
+```kotlin
+const val JUNIOR_MAX_YEARS = 19  // 0-19 → Junior
+const val MID_MAX_YEARS = 30     // 20-30 → Mid
+// 31+ → Senior
+```
+
+### 5. Adding New Appointment Status
+
+**Location:** `domain/AppointmentStatus.kt`, `service/AppointmentService.kt`
+
+**Steps:**
+1. Add enum value
+2. Update status transition validation in service
+
+### 6. Adding New Entity Fields
+
+**Steps:**
+1. Add field to domain model
+2. Add field to DTO (request/response)
+3. Update extension functions for mapping
+4. Update repository if needed
+
+### 7. Adding Pagination
+
+**Location:** Controllers and Repositories
+
+**Steps:**
+1. Add `Pageable` parameter to controller
+2. Return `Page<T>` instead of `List<T>`
+3. Update repository to support pagination
+
+---
+
+## Design Patterns Used
+
+| Pattern | Location | Purpose |
+|---------|----------|---------|
+| **Strategy** | `service/billing/FeeStrategy` | Specialty-based fee calculation |
+| **Repository** | `repository/` | Data access abstraction |
+| **DTO** | `dto/` | API request/response separation |
+| **Extension Functions** | `dto/*.kt` | Domain ↔ DTO mapping |
+| **Factory Method** | `BillingCalculator.getStrategy()` | Strategy resolution |
